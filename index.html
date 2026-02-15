@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Тёмный YouTube · Блогер / Админ</title>
+    <!-- Firebase compat (8.x) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #0f0f0f;
+            color: #eee;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 12px;
+        }
+        #app {
+            width: 100%;
+            max-width: 500px;
+            background: #1e1e1e;
+            border-radius: 28px;
+            padding: 20px 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .hidden { display: none !important; }
+        .card {
+            background: #2a2a2a;
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #3a3a3a;
+        }
+        h2, h3 {
+            font-weight: 500;
+            letter-spacing: 0.2px;
+        }
+        h2 { font-size: 1.5rem; margin-bottom: 16px; color: #fff; }
+        h3 { font-size: 1.2rem; margin-bottom: 12px; color: #ddd; }
+        button, .btn {
+            background: #3a3a3a;
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 36px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid #555;
+            box-shadow: 0 2px 5px #00000055;
+        }
+        button:active { background: #505050; transform: scale(0.97); }
+        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+        input, textarea {
+            width: 100%;
+            padding: 14px 16px;
+            background: #1a1a1a;
+            border: 1px solid #3d3d3d;
+            border-radius: 30px;
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            outline: none;
+        }
+        input:focus, textarea:focus { border-color: #7b7bff; }
+        textarea { min-height: 80px; resize: vertical; }
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 8px 0;
+        }
+        .video-item {
+            background: #1f1f1f;
+            border-radius: 20px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ff5555;
+        }
+        .video-metrics-column {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: #2a2a2a;
+            border-radius: 16px;
+            padding: 12px;
+            margin: 10px 0 12px;
+            border: 1px solid #3f3f3f;
+        }
+        .metric-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.95rem;
+        }
+        .metric-row span:first-child {
+            min-width: 24px;
+            font-size: 1.1rem;
+        }
+        .metric-row .metric-value {
+            color: #fff;
+            font-weight: 500;
+        }
+        .video-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .small-btn {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            background: #333;
+        }
+        .danger-btn { background: #8b2c2c; border-color: #b33; }
+        .success-btn { background: #2c6b2c; }
+        .admin-control {
+            background: #252525;
+            border-radius: 18px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 8px;
+        }
+        .stat-edit-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            background: #2e2e2e;
+            padding: 8px 12px;
+            border-radius: 40px;
+        }
+        .stat-edit-row label {
+            min-width: 40px;
+            font-size: 1.2rem;
+        }
+        .stat-edit-row input {
+            flex: 2;
+            min-width: 100px;
+            margin-bottom: 0;
+            padding: 10px 14px;
+            background: #1f1f1f;
+            border-radius: 40px;
+            border: 1px solid #5a5a5a;
+        }
+        .subs-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #2b2b2b;
+            border-radius: 40px;
+            padding: 10px 20px;
+            margin: 15px 0;
+        }
+        .subs-edit {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .subs-edit input {
+            width: 90px;
+            margin-bottom: 0;
+            text-align: center;
+        }
+        .plus-icon {
+            font-size: 2.2rem;
+            background: #2d5f9e;
+            width: 60px;
+            height: 60px;
+            border-radius: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 8px auto 0;
+            box-shadow: 0 4px 12px #1a3f6a;
+            cursor: pointer;
+            user-select: none;
+            border: 2px solid #8ab2ff;
+        }
+        .scrollable {
+            max-height: 380px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .scrollable::-webkit-scrollbar {
+            width: 5px;
+            background: #2a2a2a;
+        }
+        .scrollable::-webkit-scrollbar-thumb {
+            background: #777;
+            border-radius: 10px;
+        }
+        .channel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .delete-channel {
+            background: transparent;
+            border: 1px solid #a55;
+            color: #faa;
+            padding: 8px 16px;
+        }
+        .stored-badge {
+            background: #2d5f2d;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            color: #b0ffb0;
+            margin-left: 10px;
+        }
+        .subs-display {
+            background: #2d2d5f;
+            padding: 8px 16px;
+            border-radius: 40px;
+            display: inline-block;
+            margin-bottom: 12px;
+            border: 1px solid #6a6aff;
+        }
+        .monetization-display {
+            background: #1e4d2e;
+            padding: 12px 20px;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            border: 1px solid #2ecc71;
+        }
+        .monetization-text {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2ecc71;
+        }
+        .withdraw-btn {
+            background: #2ecc71;
+            color: #000;
+            font-weight: bold;
+            padding: 8px 20px;
+            border: none;
+        }
+        .short-number {
+            font-weight: 500;
+        }
+        .date-badge {
+            background: #333;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+        .admin-video-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .video-earnings {
+            background: #1a3a2a;
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 0.85rem;
+            color: #2ecc71;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+
+    <!-- === ЭКРАН ВЫБОРА РОЛИ === -->
+    <div id="role-screen" class="card">
+        <h2 style="text-align: center;">👁️ Тёмный YouTube</h2>
+        <div style="display: flex; gap: 15px; margin-top: 25px;">
+            <button style="flex:1;" id="choose-blogger">📹 Блогер</button>
+            <button style="flex:1;" id="choose-admin">🛡️ Админ</button>
+        </div>
+        <div id="existing-channel-info" style="margin-top: 25px; text-align: center; font-size:0.95rem; color: #aaa;">
+            <!-- здесь появится сообщение, если канал уже залогинен -->
+        </div>
+    </div>
+
+    <!-- === ФОРМА ВХОДА ДЛЯ БЛОГЕРА (название канала + описание) === -->
+    <div id="blogger-login" class="card hidden">
+        <h3>Создание канала</h3>
+        <input type="text" id="blogger-channel-name" placeholder="Название канала" maxlength="40">
+        <textarea id="blogger-channel-desc" placeholder="Описание канала (необязательно)"></textarea>
+        <button id="blogger-create-btn" style="width:100%;">➕ Создать и войти</button>
+        <p style="margin-top:12px;text-align:center;"><button id="back-from-blogger" class="small-btn">← Назад</button></p>
+    </div>
+
+    <!-- === ФОРМА ВХОДА ДЛЯ АДМИНА (название канала для редактирования) === -->
+    <div id="admin-login" class="card hidden">
+        <h3>Редактирование канала</h3>
+        <input type="text" id="admin-channel-name" placeholder="Название канала">
+        <button id="admin-start-edit" style="width:100%;">🖊️ Начать редактирование</button>
+        <p style="margin-top:12px;text-align:center;"><button id="back-from-admin" class="small-btn">← Назад</button></p>
+    </div>
+
+    <!-- === ПАНЕЛЬ БЛОГЕРА (после создания канала) === -->
+    <div id="blogger-panel" class="hidden">
+        <div class="channel-header">
+            <h2 id="blogger-channel-title">Загрузка...</h2>
+            <button class="delete-channel" id="blogger-delete-channel">🗑️ Удалить канал</button>
+        </div>
+        <p style="color:#aaa; margin-bottom: 10px;" id="blogger-channel-description"></p>
+        
+        <!-- ОТОБРАЖЕНИЕ ПОДПИСЧИКОВ ДЛЯ БЛОГЕРА -->
+        <div class="subs-display" id="blogger-subs-display">
+            👥 Подписчики: <span id="blogger-subs-count" class="short-number">0</span>
+        </div>
+
+        <!-- МОНЕТИЗАЦИЯ -->
+        <div class="monetization-display">
+            <span class="monetization-text">💰 Баланс: <span id="blogger-balance">0</span> ₽</span>
+            <button class="withdraw-btn" id="withdraw-btn">Вывести</button>
+        </div>
+        
+        <h3>📼 Ваши видео:</h3>
+        <div id="blogger-video-list" class="scrollable" style="min-height: 180px; margin-bottom: 10px;">
+            <!-- видео будут добавляться сюда -->
+            <p style="color:#666; text-align:center;">пока нет видео</p>
+        </div>
+        <!-- большой плюс внизу по центру -->
+        <div class="plus-icon" id="blogger-add-video-btn" title="Опубликовать видео">+</div>
+    </div>
+
+    <!-- === ПАНЕЛЬ АДМИНИСТРАТОРА === -->
+    <div id="admin-panel" class="hidden">
+        <div class="channel-header">
+            <h2 id="admin-channel-title">Загрузка...</h2>
+            <button id="admin-back-btn" class="small-btn">⬅️ Выход</button>
+        </div>
+        <!-- подписчики с ручным вводом -->
+        <div class="subs-row" id="admin-subs-row">
+            <span>👥 Подписчики: <strong id="admin-subs-count" class="short-number">0</strong></span>
+            <div class="subs-edit">
+                <input type="number" id="admin-subs-input" min="0" value="0" placeholder="число">
+                <button id="admin-subs-set" class="small-btn success-btn">Установить</button>
+            </div>
+        </div>
+        <h3>📽️ Все видео канала</h3>
+        <div id="admin-video-list" class="scrollable" style="max-height: 400px;">
+            <!-- видео с админскими контролами (ручной ввод) + кнопка смотреть -->
+        </div>
+    </div>
+
+    <!-- === МОДАЛЬНАЯ ФОРМА ДОБАВЛЕНИЯ ВИДЕО (блогер) === -->
+    <div id="video-modal" style="display: none; background: #1e1e1e; border-radius: 30px; padding: 20px; margin-top: 10px; border: 2px solid #3f3f3f;">
+        <h3 style="margin-bottom: 12px;">➕ Новое видео</h3>
+        <input type="text" id="video-title" placeholder="Название видео">
+        <textarea id="video-desc" placeholder="Описание"></textarea>
+        <input type="url" id="video-link" placeholder="Ссылка на YouTube (https://...)">
+        <div class="btn-group">
+            <button id="video-publish-btn" style="flex:2;">📤 Опубликовать</button>
+            <button id="video-cancel-btn" style="flex:1; background:#3a2a2a;">Отмена</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========== FIREBASE ==========
+    const firebaseConfig = {
+        apiKey: "AIzaSyAu_wfaRhTsWNbsyFYmEigopqJck7ynxlU",
+        authDomain: "messeger-0wo2h4.firebaseapp.com",
+        databaseURL: "https://messeger-0wo2h4-default-rtdb.firebaseio.com",
+        projectId: "messeger-0wo2h4",
+        storageBucket: "messeger-0wo2h4.firebasestorage.app",
+        messagingSenderId: "1057251395030",
+        appId: "1:1057251395030:web:86f8f718ed938055e29077"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
+    let currentChannelKey = '';           
+    let currentChannelData = null;         
+    let currentRole = '';                 // 'blogger' или 'admin'
+
+    // Функция форматирования чисел
+    function formatNumberShort(num) {
+        if (num === undefined || num === null) num = 0;
+        if (num < 1000) return num.toString();
+        
+        if (num < 1000000) {
+            let value = num / 1000;
+            let rounded = Math.round(value * 10) / 10;
+            let formatted = rounded.toString().replace('.', ',');
+            return formatted + 'к';
+        } else {
+            let value = num / 1000000;
+            let rounded = Math.round(value * 10) / 10;
+            let formatted = rounded.toString().replace('.', ',');
+            return formatted + 'м';
+        }
+    }
+
+    // Функция для расчета заработка от просмотров
+    function calculateEarnings(views) {
+        return Math.floor(views / 100) * 55;
+    }
+
+    // Расчет доступного баланса (только непрочитанные просмотры)
+    function calculateAvailableBalance(channelData) {
+        if (!channelData || !channelData.videos) return 0;
+        
+        // Получаем сохраненные последние выплаченные просмотры для каждого видео
+        const lastPaidViews = channelData.monetization?.lastPaidViews || {};
+        let totalNewEarnings = 0;
+        
+        Object.entries(channelData.videos || {}).forEach(([videoId, video]) => {
+            const currentViews = video.views || 0;
+            const lastPaid = lastPaidViews[videoId] || 0;
+            
+            if (currentViews > lastPaid) {
+                const newViews = currentViews - lastPaid;
+                totalNewEarnings += calculateEarnings(newViews);
+            }
+        });
+        
+        return totalNewEarnings;
+    }
+
+    // При загрузке проверяем, есть ли сохранённый канал блогера в sessionStorage
+    const STORAGE_KEY = 'youtube_dark_channel';
+    function loadStoredChannel() {
+        const stored = sessionStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            try {
+                const { key, role } = JSON.parse(stored);
+                if (key && role === 'blogger') {
+                    currentRole = role;
+                    currentChannelKey = key;
+                    db.ref('channels/' + key).once('value', snap => {
+                        if (snap.exists()) {
+                            currentChannelData = snap.val();
+                            renderBloggerPanel();
+                            document.getElementById('existing-channel-info').innerHTML = `<span class="stored-badge">🔑 активный канал: ${currentChannelData.displayName}</span>`;
+                        } else {
+                            sessionStorage.removeItem(STORAGE_KEY);
+                            showElement('role-screen');
+                        }
+                    });
+                    return true;
+                }
+            } catch (e) { /* игнор */ }
+        }
+        return false;
+    }
+
+    function storeBloggerChannel(key) {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ key: key, role: 'blogger' }));
+    }
+
+    function logout(keepStorage = false) {
+        if (!keepStorage) sessionStorage.removeItem(STORAGE_KEY);
+        currentChannelKey = '';
+        currentChannelData = null;
+        currentRole = '';
+        showElement('role-screen');
+    }
+
+    function sanitizeName(name) {
+        return name.trim().toLowerCase().replace(/[^a-zа-яё0-9]/gi, '_').replace(/_{2,}/g, '_').replace(/^_|_$/g, '') || 'channel';
+    }
+
+    function showElement(id) {
+        document.getElementById('role-screen').classList.add('hidden');
+        document.getElementById('blogger-login').classList.add('hidden');
+        document.getElementById('admin-login').classList.add('hidden');
+        document.getElementById('blogger-panel').classList.add('hidden');
+        document.getElementById('admin-panel').classList.add('hidden');
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function formatDateToMSK(isoString) {
+        if (!isoString) return 'только что';
+        const d = new Date(isoString);
+        return d.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
+    function loadChannel(key, role) {
+        if (!key) return;
+        const ref = db.ref('channels/' + key);
+        ref.once('value', snap => {
+            if (!snap.exists()) {
+                alert('Канал не найден!');
+                if (role === 'blogger') {
+                    sessionStorage.removeItem(STORAGE_KEY);
+                    showElement('blogger-login');
+                } else {
+                    showElement('admin-login');
+                }
+                return;
+            }
+            currentChannelKey = key;
+            currentChannelData = snap.val();
+            
+            // Инициализируем monetization если нет
+            if (!currentChannelData.monetization) {
+                currentChannelData.monetization = { lastPaidViews: {} };
+            }
+            
+            if (role === 'blogger') {
+                renderBloggerPanel();
+            } else {
+                renderAdminPanel();
+            }
+        });
+    }
+
+    // ========== БЛОГЕР ==========
+    function renderBloggerPanel() {
+        if (!currentChannelData) return;
+        document.getElementById('blogger-channel-title').innerText = currentChannelData.displayName || 'Без имени';
+        document.getElementById('blogger-channel-description').innerText = currentChannelData.description || 'нет описания';
+        
+        document.getElementById('blogger-subs-count').innerText = formatNumberShort(currentChannelData.subscribers || 0);
+        
+        // Отображаем доступный баланс
+        const availableBalance = calculateAvailableBalance(currentChannelData);
+        document.getElementById('blogger-balance').innerText = availableBalance.toLocaleString('ru-RU');
+        
+        const container = document.getElementById('blogger-video-list');
+        container.innerHTML = '';
+        const videos = currentChannelData.videos || {};
+        const videoArray = Object.entries(videos).map(([id, v]) => ({ id, ...v }));
+        videoArray.sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || ''));
+
+        if (videoArray.length === 0) {
+            container.innerHTML = '<p style="color:#666; text-align:center;">🕯️ видео нет</p>';
+        } else {
+            videoArray.forEach(v => {
+                const div = document.createElement('div');
+                div.className = 'video-item';
+                
+                const dateStr = formatDateToMSK(v.publishedAt);
+                const videoEarnings = calculateEarnings(v.views || 0);
+                const lastPaid = currentChannelData.monetization?.lastPaidViews?.[v.id] || 0;
+                const unpaidViews = Math.max(0, (v.views || 0) - lastPaid);
+                const unpaidEarnings = calculateEarnings(unpaidViews);
+                
+                div.innerHTML = `
+                    <div style="font-weight:bold;font-size:1.1rem; margin-bottom:6px;">
+                        ${escapeHtml(v.title || 'Без названия')}
+                        <span class="video-earnings">💰 всего: ${videoEarnings} ₽</span>
+                        ${unpaidEarnings > 0 ? `<span class="video-earnings" style="background:#2ecc71;">🆕 +${unpaidEarnings} ₽</span>` : ''}
+                    </div>
+                    <div style="color:#ccc; margin:6px 0;">${escapeHtml(v.description || '')}</div>
+                    <div class="date-badge">📅 ${dateStr}</div>
+                    
+                    <div class="video-metrics-column">
+                        <div class="metric-row">
+                            <span>👁️</span>
+                            <span class="metric-value short-number">${formatNumberShort(v.views || 0)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>👍</span>
+                            <span class="metric-value short-number">${formatNumberShort(v.likes || 0)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>👎</span>
+                            <span class="metric-value short-number">${formatNumberShort(v.dislikes || 0)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>💬</span>
+                            <span class="metric-value short-number">${formatNumberShort(v.comments || 0)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="video-actions">
+                        <button class="small-btn watch-video" data-link="${escapeHtml(v.youtubeLink || '#')}">▶️ Смотреть</button>
+                        <button class="small-btn danger-btn delete-video-blogger" data-videoid="${v.id}">🗑️ Удалить</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+        showElement('blogger-panel');
+
+        document.querySelectorAll('.watch-video').forEach(btn => {
+            btn.addEventListener('click', e => {
+                const link = btn.getAttribute('data-link');
+                if (link && link !== '#') window.open(link, '_blank');
+                else alert('Ссылка не указана');
+            });
+        });
+        document.querySelectorAll('.delete-video-blogger').forEach(btn => {
+            btn.addEventListener('click', e => {
+                const videoId = btn.getAttribute('data-videoid');
+                deleteVideoPrompt(videoId, 'blogger');
+            });
+        });
+
+        // Обработчик кнопки вывода
+        document.getElementById('withdraw-btn').onclick = () => {
+            const confirmText = prompt('Введите ПОДТВЕРДИТЬ для вывода средств:');
+            if (confirmText !== 'ПОДТВЕРДИТЬ') {
+                alert('Вывод отменён');
+                return;
+            }
+            
+            const availableBalance = calculateAvailableBalance(currentChannelData);
+            if (availableBalance <= 0) {
+                alert('Нет средств для вывода');
+                return;
+            }
+            
+            // Обновляем lastPaidViews для всех видео до текущих просмотров
+            const updates = {};
+            const lastPaidViews = { ...(currentChannelData.monetization?.lastPaidViews || {}) };
+            
+            Object.keys(currentChannelData.videos || {}).forEach(videoId => {
+                const views = currentChannelData.videos[videoId].views || 0;
+                lastPaidViews[videoId] = views;
+            });
+            
+            updates[`channels/${currentChannelKey}/monetization/lastPaidViews`] = lastPaidViews;
+            
+            db.ref().update(updates)
+                .then(() => {
+                    alert(`Выведено ${availableBalance} ₽`);
+                    loadChannel(currentChannelKey, 'blogger');
+                }).catch(e => alert('Ошибка: ' + e.message));
+        };
+    }
+
+    function deleteVideoPrompt(videoId, role) {
+        const confirmText = prompt('Введите ПОДТВЕРДИТЬ для удаления видео:');
+        if (confirmText !== 'ПОДТВЕРДИТЬ') {
+            alert('Удаление отменено');
+            return;
+        }
+        if (!currentChannelKey) return;
+        
+        // Также удаляем запись о выплатах для этого видео
+        const updates = {};
+        updates[`channels/${currentChannelKey}/videos/${videoId}`] = null;
+        updates[`channels/${currentChannelKey}/monetization/lastPaidViews/${videoId}`] = null;
+        
+        db.ref().update(updates)
+            .then(() => {
+                alert('Видео удалено');
+                loadChannel(currentChannelKey, role);
+            }).catch(e => alert('Ошибка: ' + e.message));
+    }
+
+    function deleteChannelPrompt(role) {
+        const confirmText = prompt('Введите ПОДТВЕРДИТЬ для УДАЛЕНИЯ КАНАЛА (это необратимо):');
+        if (confirmText !== 'ПОДТВЕРДИТЬ') {
+            alert('Удаление отменено');
+            return;
+        }
+        if (!currentChannelKey) return;
+        db.ref(`channels/${currentChannelKey}`).remove()
+            .then(() => {
+                alert('Канал удалён');
+                logout(false);
+            }).catch(e => alert('Ошибка: ' + e.message));
+    }
+
+    // ========== АДМИНИСТРАТОР ==========
+    function renderAdminPanel() {
+        if (!currentChannelData) return;
+        document.getElementById('admin-channel-title').innerText = currentChannelData.displayName + ' (админ)';
+        const subs = currentChannelData.subscribers || 0;
+        document.getElementById('admin-subs-count').innerText = formatNumberShort(subs);
+        document.getElementById('admin-subs-input').value = subs;
+
+        const container = document.getElementById('admin-video-list');
+        container.innerHTML = '';
+        const videos = currentChannelData.videos || {};
+        const videoArray = Object.entries(videos).map(([id, v]) => ({ id, ...v }));
+        videoArray.sort((a, b) => (b.publishedAt || '').localeCompare(a.publishedAt || ''));
+
+        if (videoArray.length === 0) {
+            container.innerHTML = '<p style="color:#666;">Видео отсутствуют</p>';
+        } else {
+            videoArray.forEach(v => {
+                const div = document.createElement('div');
+                div.className = 'video-item';
+                div.setAttribute('data-vid', v.id);
+                
+                const dateStr = formatDateToMSK(v.publishedAt);
+                const videoEarnings = calculateEarnings(v.views || 0);
+                
+                div.innerHTML = `
+                    <div class="admin-video-header">
+                        <div><b>${escapeHtml(v.title)}</b> <span class="video-earnings">💰 ${videoEarnings} ₽</span></div>
+                        <button class="small-btn watch-video-admin" data-link="${escapeHtml(v.youtubeLink || '#')}" style="padding:6px 12px;">▶️ Смотреть</button>
+                    </div>
+                    <div style="color:#aaa; font-size:0.9rem; margin:4px 0;">${escapeHtml(v.description || '')}</div>
+                    <div class="date-badge">📅 ${dateStr}</div>
+                    
+                    <div class="video-metrics-column">
+                        <div class="metric-row">
+                            <span>👁️</span>
+                            <span class="metric-value short-number">${formatNumberShort(v.views || 0)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>👍</span>
+                            <span class="metric-value short-number">${formatNumberShort(v.likes || 0)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>👎</span>
+                            <span class="metric-value short-number">${formatNumberShort(v.dislikes || 0)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>💬</span>
+                            <span class="metric-value short-number">${formatNumberShort(v.comments || 0)}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="admin-control">
+                        <div class="stat-edit-row">
+                            <label>👁️</label>
+                            <input type="number" class="admin-views-input" data-id="${v.id}" value="${v.views || 0}" min="0">
+                            <button class="small-btn admin-set-btn" data-field="views" data-id="${v.id}">Уст</button>
+                        </div>
+                        <div class="stat-edit-row">
+                            <label>👍</label>
+                            <input type="number" class="admin-likes-input" data-id="${v.id}" value="${v.likes || 0}" min="0">
+                            <button class="small-btn admin-set-btn" data-field="likes" data-id="${v.id}">Уст</button>
+                        </div>
+                        <div class="stat-edit-row">
+                            <label>👎</label>
+                            <input type="number" class="admin-dislikes-input" data-id="${v.id}" value="${v.dislikes || 0}" min="0">
+                            <button class="small-btn admin-set-btn" data-field="dislikes" data-id="${v.id}">Уст</button>
+                        </div>
+                        <div class="stat-edit-row">
+                            <label>💬</label>
+                            <input type="number" class="admin-comments-input" data-id="${v.id}" value="${v.comments || 0}" min="0">
+                            <button class="small-btn admin-set-btn" data-field="comments" data-id="${v.id}">Уст</button>
+                        </div>
+                        <button class="small-btn danger-btn admin-delete-video" data-id="${v.id}">🗑️ Удалить видео</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+        showElement('admin-panel');
+        attachAdminListeners();
+    }
+
+    function attachAdminListeners() {
+        document.getElementById('admin-subs-set').onclick = () => {
+            const input = document.getElementById('admin-subs-input');
+            const val = parseInt(input.value, 10);
+            if (isNaN(val) || val < 0) { alert('Введите неотрицательное число'); return; }
+            db.ref(`channels/${currentChannelKey}/subscribers`).set(val)
+                .then(() => loadChannel(currentChannelKey, 'admin'));
+        };
+
+        document.querySelectorAll('.admin-set-btn').forEach(btn => {
+            btn.addEventListener('click', e => {
+                const field = btn.dataset.field;
+                const videoId = btn.dataset.id;
+                let input;
+                if (field === 'views') input = document.querySelector(`.admin-views-input[data-id="${videoId}"]`);
+                else if (field === 'likes') input = document.querySelector(`.admin-likes-input[data-id="${videoId}"]`);
+                else if (field === 'dislikes') input = document.querySelector(`.admin-dislikes-input[data-id="${videoId}"]`);
+                else if (field === 'comments') input = document.querySelector(`.admin-comments-input[data-id="${videoId}"]`);
+                if (!input) return;
+                const val = parseInt(input.value, 10);
+                if (isNaN(val) || val < 0) { alert('Число должно быть ≥ 0'); return; }
+                db.ref(`channels/${currentChannelKey}/videos/${videoId}/${field}`).set(val)
+                    .then(() => loadChannel(currentChannelKey, 'admin'));
+            });
+        });
+
+        document.querySelectorAll('.watch-video-admin').forEach(btn => {
+            btn.addEventListener('click', e => {
+                const link = btn.getAttribute('data-link');
+                if (link && link !== '#') window.open(link, '_blank');
+                else alert('Ссылка не указана');
+            });
+        });
+
+        document.querySelectorAll('.admin-delete-video').forEach(btn => {
+            btn.addEventListener('click', e => {
+                const videoId = btn.dataset.id;
+                deleteVideoPrompt(videoId, 'admin');
+            });
+        });
+    }
+
+    function createBloggerChannel() {
+        const displayName = document.getElementById('blogger-channel-name').value.trim();
+        if (!displayName) { alert('Введите название канала'); return; }
+        const desc = document.getElementById('blogger-channel-desc').value.trim();
+        const key = sanitizeName(displayName);
+        if (!key) { alert('Некорректное имя'); return; }
+
+        const ref = db.ref('channels/' + key);
+        ref.once('value', snap => {
+            if (snap.exists()) {
+                alert('Канал с таким именем уже существует. Войдите как администратор или используйте другое имя.');
+                return;
+            }
+            const newChannel = {
+                displayName: displayName,
+                description: desc,
+                subscribers: 0,
+                createdAt: new Date().toISOString(),
+                monetization: { lastPaidViews: {} },
+                videos: {}
+            };
+            ref.set(newChannel).then(() => {
+                currentChannelKey = key;
+                currentRole = 'blogger';
+                storeBloggerChannel(key);
+                loadChannel(key, 'blogger');
+            }).catch(e => alert(e.message));
+        });
+    }
+
+    function adminStartEdit() {
+        const name = document.getElementById('admin-channel-name').value.trim();
+        if (!name) { alert('Введите название канала'); return; }
+        const key = sanitizeName(name);
+        db.ref('channels/' + key).once('value', snap => {
+            if (!snap.exists()) {
+                alert('Канал не найден!');
+                return;
+            }
+            currentRole = 'admin';
+            loadChannel(key, 'admin');
+        });
+    }
+
+    function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe.replace(/[&<>"]/g, function(m) {
+            if(m === '&') return '&amp;'; if(m === '<') return '&lt;'; if(m === '>') return '&gt;'; if(m === '"') return '&quot;';
+            return m;
+        });
+    }
+
+    function publishVideo() {
+        const title = document.getElementById('video-title').value.trim();
+        const desc = document.getElementById('video-desc').value.trim();
+        const link = document.getElementById('video-link').value.trim();
+        if (!title || !link) { alert('Название и ссылка обязательны'); return; }
+        if (!link.startsWith('http')) { alert('Ссылка должна начинаться с http:// или https://'); return; }
+
+        const newVideo = {
+            title, description: desc, youtubeLink: link,
+            publishedAt: new Date().toISOString(),
+            views: 0, likes: 0, dislikes: 0, comments: 0
+        };
+        const videoRef = db.ref(`channels/${currentChannelKey}/videos`).push();
+        videoRef.set(newVideo).then(() => {
+            document.getElementById('video-title').value = '';
+            document.getElementById('video-desc').value = '';
+            document.getElementById('video-link').value = '';
+            document.getElementById('video-modal').style.display = 'none';
+            loadChannel(currentChannelKey, 'blogger');
+        }).catch(e => alert(e));
+    }
+
+    window.onload = function() {
+        const hasStored = loadStoredChannel();
+        if (!hasStored) {
+            showElement('role-screen');
+        }
+
+        document.getElementById('choose-blogger').onclick = () => {
+            if (currentRole === 'blogger' && currentChannelKey) {
+                renderBloggerPanel();
+            } else {
+                showElement('blogger-login');
+            }
+        };
+        document.getElementById('choose-admin').onclick = () => showElement('admin-login');
+
+        document.getElementById('back-from-blogger').onclick = () => showElement('role-screen');
+        document.getElementById('back-from-admin').onclick = () => showElement('role-screen');
+        document.getElementById('admin-back-btn').onclick = () => logout(true);
+
+        document.getElementById('blogger-create-btn').onclick = createBloggerChannel;
+        document.getElementById('admin-start-edit').onclick = adminStartEdit;
+
+        document.getElementById('blogger-add-video-btn').onclick = () => {
+            document.getElementById('video-modal').style.display = 'block';
+        };
+        document.getElementById('video-cancel-btn').onclick = () => {
+            document.getElementById('video-modal').style.display = 'none';
+        };
+        document.getElementById('video-publish-btn').onclick = publishVideo;
+
+        document.getElementById('blogger-delete-channel').onclick = () => deleteChannelPrompt('blogger');
+    };
+</script>
+</body>
+</html>
