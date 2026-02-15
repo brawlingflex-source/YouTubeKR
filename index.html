@@ -295,12 +295,6 @@
             margin-left: 8px;
             font-weight: bold;
         }
-        .welcome-message {
-            text-align: center;
-            color: #888;
-            margin: 20px 0;
-            font-style: italic;
-        }
     </style>
 </head>
 <body>
@@ -318,7 +312,7 @@
         </div>
     </div>
 
-    <!-- === ФОРМА ВХОДА ДЛЯ БЛОГЕРА (показывается только если нет канала) === -->
+    <!-- === ФОРМА ВХОДА ДЛЯ БЛОГЕРА (название канала + описание) === -->
     <div id="blogger-login" class="card hidden">
         <h3>Создание канала</h3>
         <input type="text" id="blogger-channel-name" placeholder="Название канала" maxlength="40">
@@ -459,62 +453,39 @@
         return totalNewEarnings;
     }
 
-    // При загрузке проверяем, есть ли сохранённый канал блогера в localStorage (не sessionStorage!)
-    const STORAGE_KEY = 'youtube_dark_channel_permanent';
-    
+    // При загрузке проверяем, есть ли сохранённый канал блогера в sessionStorage
+    const STORAGE_KEY = 'youtube_dark_channel';
     function loadStoredChannel() {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const stored = sessionStorage.getItem(STORAGE_KEY);
         if (stored) {
             try {
                 const { key, role } = JSON.parse(stored);
                 if (key && role === 'blogger') {
                     currentRole = role;
                     currentChannelKey = key;
-                    
-                    // Показываем индикатор загрузки
-                    showLoader();
-                    
                     db.ref('channels/' + key).once('value', snap => {
-                        hideLoader();
                         if (snap.exists()) {
                             currentChannelData = snap.val();
                             renderBloggerPanel();
-                            document.getElementById('existing-channel-info').innerHTML = `<span class="stored-badge">🔑 ваш канал: ${currentChannelData.displayName}</span>`;
+                            document.getElementById('existing-channel-info').innerHTML = `<span class="stored-badge">🔑 активный канал: ${currentChannelData.displayName}</span>`;
                         } else {
-                            // канал удалён или не существует — очищаем
-                            localStorage.removeItem(STORAGE_KEY);
+                            sessionStorage.removeItem(STORAGE_KEY);
                             showElement('role-screen');
                         }
                     });
                     return true;
                 }
-            } catch (e) { 
-                console.error('Ошибка загрузки сохранённого канала', e);
-                localStorage.removeItem(STORAGE_KEY);
-            }
+            } catch (e) { /* игнор */ }
         }
         return false;
     }
 
-    function showLoader() {
-        // Простая индикация загрузки
-        document.getElementById('role-screen').classList.add('hidden');
-        document.getElementById('blogger-panel').innerHTML = '<div style="text-align:center; padding:40px;">⏳ Загрузка канала...</div>';
-        document.getElementById('blogger-panel').classList.remove('hidden');
-    }
-
-    function hideLoader() {
-        // Ничего не делаем, рендер сам справится
-    }
-
-    // Сохранить состояние блогера навсегда (в localStorage)
     function storeBloggerChannel(key) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ key: key, role: 'blogger' }));
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ key: key, role: 'blogger' }));
     }
 
-    // Выход (сброс) - только при удалении канала
     function logout(keepStorage = false) {
-        if (!keepStorage) localStorage.removeItem(STORAGE_KEY);
+        if (!keepStorage) sessionStorage.removeItem(STORAGE_KEY);
         currentChannelKey = '';
         currentChannelData = null;
         currentRole = '';
@@ -547,7 +518,7 @@
             if (!snap.exists()) {
                 alert('Канал не найден!');
                 if (role === 'blogger') {
-                    localStorage.removeItem(STORAGE_KEY);
+                    sessionStorage.removeItem(STORAGE_KEY);
                     showElement('blogger-login');
                 } else {
                     showElement('admin-login');
@@ -716,7 +687,7 @@
         db.ref(`channels/${currentChannelKey}`).remove()
             .then(() => {
                 alert('Канал удалён');
-                logout(false); // очищаем localStorage
+                logout(false);
             }).catch(e => alert('Ошибка: ' + e.message));
     }
 
@@ -869,7 +840,7 @@
             ref.set(newChannel).then(() => {
                 currentChannelKey = key;
                 currentRole = 'blogger';
-                storeBloggerChannel(key); // сохраняем навсегда
+                storeBloggerChannel(key);
                 loadChannel(key, 'blogger');
             }).catch(e => alert(e.message));
         });
@@ -920,18 +891,13 @@
     }
 
     window.onload = function() {
-        // Сначала пытаемся загрузить сохранённый канал
         const hasStored = loadStoredChannel();
-        
         if (!hasStored) {
-            // Если нет сохранённого канала, показываем экран выбора роли
             showElement('role-screen');
         }
 
-        // кнопки выбора роли
         document.getElementById('choose-blogger').onclick = () => {
             if (currentRole === 'blogger' && currentChannelKey) {
-                // уже есть активный канал — просто покажем панель блогера
                 renderBloggerPanel();
             } else {
                 showElement('blogger-login');
@@ -941,21 +907,11 @@
 
         document.getElementById('back-from-blogger').onclick = () => showElement('role-screen');
         document.getElementById('back-from-admin').onclick = () => showElement('role-screen');
-        document.getElementById('admin-back-btn').onclick = () => {
-            // Для админа выход без удаления storage блогера
-            currentRole = '';
-            currentChannelKey = '';
-            currentChannelData = null;
-            showElement('role-screen');
-        };
+        document.getElementById('admin-back-btn').onclick = () => logout(true);
 
-        // создание канала
         document.getElementById('blogger-create-btn').onclick = createBloggerChannel;
-
-        // админ старт
         document.getElementById('admin-start-edit').onclick = adminStartEdit;
 
-        // плюсик показать модалку видео
         document.getElementById('blogger-add-video-btn').onclick = () => {
             document.getElementById('video-modal').style.display = 'block';
         };
@@ -964,7 +920,6 @@
         };
         document.getElementById('video-publish-btn').onclick = publishVideo;
 
-        // удаление канала (блогер)
         document.getElementById('blogger-delete-channel').onclick = () => deleteChannelPrompt('blogger');
     };
 </script>
