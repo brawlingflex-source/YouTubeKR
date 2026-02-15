@@ -253,6 +253,11 @@
             font-weight: bold;
             padding: 8px 20px;
             border: none;
+            border-radius: 36px;
+            cursor: pointer;
+        }
+        .withdraw-btn:hover {
+            background: #27ae60;
         }
         .short-number {
             font-weight: 500;
@@ -279,6 +284,16 @@
             font-size: 0.85rem;
             color: #2ecc71;
             margin-left: 8px;
+        }
+        .video-earnings-new {
+            background: #2ecc71;
+            color: #000;
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 0.85rem;
+            margin-left: 8px;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -412,9 +427,9 @@
         }
     }
 
-    // Функция для расчета заработка от просмотров
+    // Функция для расчета заработка от просмотров (25₽ за 100 просмотров)
     function calculateEarnings(views) {
-        return Math.floor(views / 100) * 55;
+        return Math.floor(views / 100) * 25;
     }
 
     // Расчет доступного баланса (только непрочитанные просмотры)
@@ -561,7 +576,7 @@
                     <div style="font-weight:bold;font-size:1.1rem; margin-bottom:6px;">
                         ${escapeHtml(v.title || 'Без названия')}
                         <span class="video-earnings">💰 всего: ${videoEarnings} ₽</span>
-                        ${unpaidEarnings > 0 ? `<span class="video-earnings" style="background:#2ecc71;">🆕 +${unpaidEarnings} ₽</span>` : ''}
+                        ${unpaidEarnings > 0 ? `<span class="video-earnings-new">🆕 +${unpaidEarnings} ₽</span>` : ''}
                     </div>
                     <div style="color:#ccc; margin:6px 0;">${escapeHtml(v.description || '')}</div>
                     <div class="date-badge">📅 ${dateStr}</div>
